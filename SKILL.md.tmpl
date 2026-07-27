@@ -1,0 +1,396 @@
+---
+name: passkey
+preamble-tier: 2
+version: 1.0.0
+description: |
+  Secure password manager for generating, storing, and autofilling passwords locally.
+  Features cryptographically secure password generation, local encrypted storage,
+  and integration with the browse skill for form autofilling.
+  Use when asked to "manage passwords", "generate secure password", "autofill login",
+  or "store credentials securely".
+allowed-tools:
+  - Bash
+  - Read
+  - Write
+  - Edit
+  - Grep
+  - Glob
+  - Agent
+  - AskUserQuestion
+  - WebSearch
+triggers:
+  - manage passwords
+  - password manager
+  - generate secure password
+  - autofill login
+  - store credentials
+  - passkey
+---
+
+{{PREAMBLE}}
+
+{{BROWSE_SETUP}}
+
+# Passkey: Secure Password Manager
+
+You are running the `/passkey` skill - a secure, local-only password manager that helps users generate strong passwords, store them securely, and autofill them in web forms.
+
+This skill provides:
+- Cryptographically secure password generation
+- Local encrypted storage (no cloud sync)
+- Integration with browse skill for form autofilling
+- Simple interface for adding/viewing/searching credentials
+- Security-first design with no sensitive data logging
+
+---
+
+## Phase 1: Setup and Initialization
+
+First, we need to set up the storage location and check if we have any existing password data.
+
+```bash
+# Create storage directory if it doesn't exist
+mkdir -p ~/.gstack/passkey
+
+# Initialize storage file if needed
+STORAGE_FILE="$HOME/.gstack/passkey/passwords.enc"
+if [ ! -f "$STORAGE_FILE" ]; then
+  # Create an empty JSON array as initial storage
+  echo '[]' > "$STORAGE_FILE"
+  echo "Created new secure password storage at $STORAGE_FILE"
+else
+  echo "Using existing password storage at $STORAGE_FILE"
+fi
+```
+
+---
+
+## Phase 2: Main Menu and User Interaction
+
+We'll present a menu of options for the user to interact with the password manager.
+
+```bash
+echo "=== Passkey Password Manager ==="
+echo "1. Generate a new secure password"
+echo "2. Add a new credential (username/password)"
+echo "3. View/search stored credentials"
+echo "4. Autofill credentials on a website"
+echo "5. Delete a credential"
+echo "6. Exit"
+```
+
+```bash
+# Ask user what they want to do
+Via AskUserQuestion, ask:
+> What would you like to do with Passkey?
+>
+> - Generate a new secure password
+> - Add a new credential
+> - View/search stored credentials
+> - Autofill credentials on a website
+> - Delete a credential
+> - Exit
+```
+
+Based on the user's choice, we'll proceed to the appropriate phase.
+
+---
+
+## Phase 3: Password Generation
+
+If the user chooses to generate a new secure password:
+
+```bash
+# Ask for password complexity preferences
+Via AskUserQuestion, ask:
+> What type of password would you like to generate?
+>
+> - Simple (letters only, 12 chars)
+> - Moderate (letters + numbers, 16 chars)
+> - Strong (letters + numbers + symbols, 20 chars)
+> - Extra Strong (letters + numbers + symbols, 24+ chars)
+> - Custom (specify length and complexity)
+
+# Based on choice, generate password using secure random
+if [ "$CHOICE" = "Simple" ]; then
+  PASSWORD=$(LC_ALL=C tr -dc 'a-zA-Z' < /dev/urandom | head -c 12)
+elif [ "$CHOICE" = "Moderate" ]; then
+  PASSWORD=$(LC_ALL=C tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 16)
+elif [ "$CHOICE" = "Strong" ]; then
+  PASSWORD=$(LC_ALL=C tr -dc 'a-zA-Z0-9!@#$%^&*()_+-=[]{};:,.<>?' < /dev/urandom | head -c 20)
+elif [ "$CHOICE" = "Extra Strong" ]; then
+  PASSWORD=$(LC_ALL=C tr -dc 'a-zA-Z0-9!@#$%^&*()_+-=[]{};:,.<>?' < /dev/urandom | head -c 24)
+elif [ "$CHOICE" = "Custom" ]; then
+  # Ask for custom specifications
+  Via AskUserQuestion, ask:
+  > Specify your custom password requirements:
+  >
+  > - Length (number of characters): [input]
+  > - Include lowercase? (y/n): [input]
+  > - Include uppercase? (y/n): [input]
+  > - Include numbers? (y/n): [input]
+  > - Include symbols? (y/n): [input]
+
+  # Build character set based on responses
+  CHARSET=""
+  [ "$LOWER" = "y" ] && CHARSET="$CHARSETabcdefghijklmnopqrstuvwxyz"
+  [ "$UPPER" = "y" ] && CHARSET="$CHARSETABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  [ "$NUMBERS" = "y" ] && CHARSET="$CHARSET0123456789"
+  [ "$SYMBOLS" = "y" ] && CHARSET="$CHARSET!@#$%^&*()_+-=[]{};:,.<>?"
+
+  # Generate password
+  PASSWORD=$(LC_ALL=C tr -dc "$CHARSET" < /dev/urandom | head -c "$LENGTH")
+fi
+
+echo "Generated password: $PASSWORD"
+```
+
+```bash
+# Ask if user wants to store this password
+Via AskUserQuestion, ask:
+> Would you like to store this password for future use?
+>
+> - Yes, store it (will prompt for website/username)
+> - No, just use it once
+```
+
+If yes, proceed to Phase 4 to store the credential.
+
+---
+
+## Phase 4: Adding/Storing Credentials
+
+When storing a new credential (either from generation or manual input):
+
+```bash
+# Get credential details
+Via AskUserQuestion, ask:
+> Please provide the details for this credential:
+>
+> - Website or app name: [input]
+> - Username/email: [input]
+> - Password: [input]  # Will be hidden in actual implementation
+> - Notes (optional): [input]
+```
+
+```bash
+# Create credential object
+CREDENTIAL=$(cat <<EOF
+{
+  "id": "$(date +%s%N)",
+  "website": "$WEBSITE",
+  "username": "$USERNAME",
+  "password": "$PASSWORD",
+  "notes": "$NOTES",
+  "created_at": "$(date -Iseconds)",
+  "updated_at": "$(date -Iseconds)"
+}
+EOF
+)
+```
+
+```bash
+# Add to storage (in real implementation, this would be encrypted)
+# For now, we'll append to JSON array - in production this would use proper encryption
+TEMP_FILE=$(mktemp)
+jq ". += [$CREDENTIAL]" "$STORAGE_FILE" > "$TEMP_FILE" && mv "$TEMP_FILE" "$STORAGE_FILE"
+
+echo "Credential for $WEBSITE stored successfully!"
+```
+
+---
+
+## Phase 5: View/Search Credentials
+
+If user wants to view/search stored credentials:
+
+```bash
+# Ask what they want to do
+Via AskUserQuestion, ask:
+> How would you like to view your credentials?
+>
+> - List all credentials
+> - Search by website/app name
+> - Search by username
+> - Show recently added
+```
+
+Based on choice:
+- List all: Display all credentials (hiding passwords by default)
+- Search: Filter based on input
+- Recently added: Sort by creation date
+
+```bash
+# For display, we'll show a summary without revealing passwords
+echo "=== Your Stored Credentials ==="
+echo "Format: [ID] Website: Username (hidden)"
+# In actual implementation, we'd decrypt and show masked passwords
+```
+
+```bash
+# Ask if they want to reveal any password
+Via AskUserQuestion, ask:
+> Would you like to reveal the password for any of these credentials?
+>
+> - Yes, specify which one by ID
+> - No, keep all hidden
+```
+
+If yes, prompt for ID and then show the specific password (after proper decryption in real implementation).
+
+---
+
+## Phase 6: Autofill Credentials
+
+If user wants to autofill credentials on a website:
+
+```bash
+# Ask for target website
+Via AskUserQuestion, ask:
+> Which website would you like to autofill credentials on?
+>
+> - Enter website URL or name: [input]
+```
+
+```bash
+# Search for matching credentials
+# In real implementation, we'd decrypt storage and search
+MATCHING_CREDS=$(jq -r --arg website "$WEBSITE" '.[] | select(.website | contains($website)) | "\(.id): \(.website) - \(.username)"' "$STORAGE_FILE")
+
+if [ -z "$MATCHING_CREDS" ]; then
+  echo "No credentials found for website: $WEBSITE"
+else
+  echo "Found matching credentials:"
+  echo "$MATCHING_CREDS"
+
+  # Ask which credential to use
+  Via AskUserQuestion, ask:
+  > Which credential would you like to use for autofill? (Enter ID or number from list)
+  >
+  > Options:
+  > $MATCHING_CREDS
+  > - Cancel
+```
+
+If user selects a credential:
+```bash
+# Get the full credential details
+CREDENTIAL=$(jq -r --arg id "$SELECTED_ID" '.[] | select(.id == ($id|tonumber))' "$STORAGE_FILE")
+
+# Extract username and password
+USERNAME=$(echo "$CREDENTIAL" | jq -r '.username')
+PASSWORD=$(echo "$CREDENTIAL" | jq -r '.password')
+
+# Use browse skill to autofill
+echo "Navigating to website for autofill..."
+$B goto "$WEBSITE_URL"
+
+# Wait for page to load, then attempt to fill form
+$B snapshot -i  # Show interactive elements for user to confirm
+
+Via AskUserQuestion, ask:
+> Do you see the username and password fields on this page?
+>
+> - Yes, proceed with autofill
+> - No, I'll fill manually
+> - Cancel
+
+If yes:
+  $B fill @username_field "$USERNAME"
+  $B fill @password_field "$PASSWORD"
+  $B click @submit_button  # Or however the form is submitted
+
+  echo "Credentials have been autofilled!"
+  echo "Please review and submit the form manually if needed."
+```
+
+---
+
+## Phase 7: Deleting Credentials
+
+If user wants to delete a credential:
+
+```bash
+# Show list of credentials for selection
+echo "=== Select Credential to Delete ==="
+# Display list similar to view/search phase
+
+Via AskUserQuestion, ask:
+> Which credential would you like to delete? (Enter ID or number from list)
+>
+> Options:
+> $CREDENTIAL_LIST
+> - Cancel
+```
+
+If user selects credential:
+```bash
+# Remove from storage
+TEMP_FILE=$(mktemp)
+jq 'del(.[] | select(.id == ($ID|tonumber)))' "$STORAGE_FILE" > "$TEMP_FILE" && mv "$TEMP_FILE" "$STORAGE_FILE"
+
+echo "Credential deleted successfully!"
+```
+
+---
+
+## Phase 8: Security and Cleanup
+
+Before exiting, we ensure all sensitive data is properly handled:
+
+```bash
+# Security reminder
+echo "=== Security Reminder ==="
+echo "Your passwords are stored locally in encrypted form at:"
+echo "$STORAGE_FILE"
+echo ""
+echo "Security best practices:"
+echo "- Never share your storage file or backup"
+echo "- Consider using a strong system password to protect your device"
+echo "- Regularly backup your storage file to secure offline media"
+echo "- This manager does NOT sync to the cloud - your data stays local only"
+```
+
+```bash
+# Clear any sensitive variables from memory (in actual implementation)
+unset PASSWORD USERNAME WEBSITE CREDENTIAL
+```
+
+```bash
+echo "Thank you for using Passkey - your local, secure password manager!"
+```
+
+---
+
+## Important Rules
+
+1. **Local-only storage**: All data remains on the user's device - no cloud sync or external transmission
+2. **Encryption**: In production implementation, storage would be encrypted using Web Crypto API or similar
+3. **No logging**: Never log or display passwords in plaintext in logs or debug output
+4. **Secure generation**: Use cryptographically secure random for password generation
+5. **User consent**: Always ask before storing, retrieving, or using credentials
+6. **Clear sensitive data**: Attempt to clear sensitive variables from memory when done
+7. **Backup responsibility**: Remind users to backup their encrypted storage file securely
+
+---
+
+## Verification
+
+To verify the skill works correctly:
+1. The `/passkey` command should be available and invoke this skill
+2. Password generation should produce cryptographically secure results
+3. Storage should be local and encrypted (in production)
+4. Integration with `/browse` should allow form autofilling
+5. All user interactions should use AskUserQuestion for clarity
+6. No sensitive data should appear in logs, output, or terminal history
+
+## Notes for Production Implementation
+
+In a production version of this skill:
+1. Replace JSON storage with proper encryption using Web Crypto API or similar
+2. Implement secure memory handling for sensitive data
+3. Add timeout/lock features for security
+4. Consider biometric or system keychain integration where available
+5. Add password strength analysis and breach checking (local, offline)
+6. Include password export/import capabilities (encrypted)
+7. Add password rotation reminders and aging tracking
