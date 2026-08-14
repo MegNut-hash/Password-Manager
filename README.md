@@ -58,5 +58,5 @@ Upon launching, a secure UI will prompt you to establish or enter your Master Ke
 
 **Explicit Consent:** User consent and authentication are strictly required before any credential is saved, retrieved, or injected into a form.
 
-##⚠️ **Master Key Recovery:** Because this is a zero-knowledge, local-only architecture, there is no recovery mechanism if you lose your Master Key or your local salt file. Please keep them safe.
+⚠️ **Master Key Recovery:** Because this is a zero-knowledge, local-only architecture, there is no recovery mechanism if you lose your Master Key or your local salt file. Please keep them safe.
 
