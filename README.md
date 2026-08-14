@@ -1,6 +1,7 @@
 🔐 Passkey Password Manager
 A highly secure, local-only password manager built for the gstack framework. Designed with a strict security-first architecture, this tool ensures your credentials never leave your local environment.
 
+
 ✨ Features
 Credential Management: Easily add, securely view, search, and remove your stored passwords through a simple, intuitive user interface.
 
@@ -12,12 +13,15 @@ Seamless Integration: Works perfectly with the gstack browse skill for rapid, au
 
 Privacy First: Strict zero-logging policy. Passwords are never displayed in plaintext within logs, console outputs, or debug traces.
 
+
+
 📂 Project Structure
 docs/ - The installed skill documentation and reference guides.
 
 templates/ - The template used to generate the skill structure.
 
 Password_Manager.py - The main executable script for the user interface.
+
 
 🚀 Getting Started
 Prerequisites
@@ -41,6 +45,7 @@ python Password_Manager.py
 (If you are on Linux/macOS or a Raspberry Pi, use python3 Password_Manager.py)
 
 Upon launching, a secure UI will prompt you to establish or enter your Master Key. This key is required to decrypt and access your vault. Once authenticated, the interface will guide you through generating secure passwords, storing new credentials, and utilizing the autofill integration.
+
 
 🛡️ Security Notes & Disclaimer
 Device-Bound: All data remains strictly on the device where it is generated.
