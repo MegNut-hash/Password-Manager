@@ -1,0 +1,17 @@
+# Python caches
+__pycache__/
+.pytest_cache/
+
+# CRITICAL: Security & Database files
+# Ignore the database file but keep the python script
+vault
+!vault.py
+salt.salt
+
+# AI/Local Environment Context
+.agents/
+
+# Logs and Outputs
+error
+output
+test_in_pm
