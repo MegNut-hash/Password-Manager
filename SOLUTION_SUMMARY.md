@@ -6,16 +6,17 @@ I've created a complete, secure password manager with a graphical user interface
 
 ### Files Created:
 
-1. **gui_password_manager.py** - The main GUI application (replaces the CLI version)
-2. **ault.py** - Core encryption engine (AES-256 + PBKDF2)
-3. **equirements.txt** - Dependencies (cryptography>=49.0.0)
+1. **gui.py / Password_Manager.py** - The main GUI application (replaces the CLI version)
+2. **ault.py** - Core encryption engine (Fernet (AES-128-CBC + HMAC-SHA256) + PBKDF2)
+3. **
+equirements.txt** - Dependencies (cryptography>=49.0.0)
 4. **README.md** - Comprehensive documentation
 5. **main.py** - Original CLI version (preserved for reference)
 
 ## Key Features
 
 ### ?? Enterprise-Grade Security
-- **AES-256 Encryption** (via Fernet in CBC mode with HMAC verification)
+- **Authenticated Encryption** (Fernet: AES-128-CBC with HMAC-SHA256 verification)
 - **PBKDF2 Key Derivation** with SHA-256 and 100,000+ iterations
 - **Unique Salt per Vault** to prevent rainbow table attacks
 - **Zero-Knowledge Architecture** - Master password never stored
@@ -49,9 +50,9 @@ I've created a complete, secure password manager with a graphical user interface
 `
 Master Password + Salt ? PBKDF2-SHA256 (100k iterations) ? Encryption Key
                            ?
-                    AES-256 Encryption (Fernet)
+                    Fernet Encryption (AES-128-CBC + HMAC-SHA256)
                            ?
-                   Encrypted Data stored in vault.db
+                   Encrypted data stored in a local vault file (vault.db, not committed)
 `
 
 **CSV Format Supported:**
@@ -69,7 +70,7 @@ example.com,https://example.com,user@example.com,securepassword123
 
 2. **Launch the Application:**
    `ash
-   python gui_password_manager.py
+   python gui.py / Password_Manager.py
    `
 
 3. **First-Time Setup:**

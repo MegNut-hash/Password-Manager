@@ -15,3 +15,7 @@ salt.salt
 error
 output
 test_in_pm
+
+# Vault data (never commit)
+vault.db
+*.db

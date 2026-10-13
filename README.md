@@ -16,9 +16,10 @@
 
 ## 📂 Project Structure
 
-*   `docs/` - The installed skill documentation and reference guides.
-*   `templates/` - The template used to generate the skill structure.
-*   `Password_Manager.py` - The main executable script for the user interface.
+*   `vault.py` - Encryption engine: key derivation, encrypted vault storage, password generator.
+*   `gui.py` / `Password_Manager.py` - Tkinter graphical interface.
+*   `main.py` - Command-line interface.
+*   `test_gui.py` - pytest tests for the GUI (import, export, delete, display).
 *   `requirements.txt` - Required external dependencies for the application.
 
 ---
@@ -54,7 +55,9 @@ Upon launching, a secure UI will prompt you to establish or enter your Master Ke
 ## 🛡️ Security Notes & Disclaimer
 **Device-Bound:** All data remains strictly on the device where it is generated.
 
-**Cryptographic Standards:** Passwords and keys are generated using cryptographically secure pseudorandom number generators (CSPRNG).
+**Cryptographic Standards:** Passwords and salts are generated with Python's `secrets` module (CSPRNG). The vault key is derived from your Master Key with PBKDF2-HMAC-SHA256 (100,000 iterations, random 16-byte salt) and the vault is encrypted with Fernet from the `cryptography` library, which is AES-128-CBC with HMAC-SHA256 authentication.
+
+**Local files:** `vault.db` and `salt.salt` are created on first run, are git-ignored, and must never be committed.
 
 **Explicit Consent:** User consent and authentication are strictly required before any credential is saved, retrieved, or injected into a form.
 
